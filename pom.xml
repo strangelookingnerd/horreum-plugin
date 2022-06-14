@@ -58,7 +58,7 @@ THE SOFTWARE.
 		<access-modifier.version>1.25</access-modifier.version>
 		<testcontainers.version>1.16.0</testcontainers.version>
 		<junit.jupiter.version>5.8.0</junit.jupiter.version>
-		<horreum.version>0.3</horreum.version>
+		<horreum.version>0.4</horreum.version>
 	</properties>
 
 	<repositories>
