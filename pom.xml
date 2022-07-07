@@ -356,6 +356,11 @@ THE SOFTWARE.
 		</dependency>
 
 		<dependency>
+			<groupId>org.jboss.logging</groupId>
+			<artifactId>jboss-logging</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
 			<version>${junit.jupiter.version}</version>
@@ -368,7 +373,6 @@ THE SOFTWARE.
 			<version>${testcontainers.version}</version>
 			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
 
 	<developers>

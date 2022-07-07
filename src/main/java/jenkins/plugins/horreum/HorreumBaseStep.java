@@ -53,7 +53,15 @@ public abstract class HorreumBaseStep<C extends HorreumBaseConfig> extends Abstr
             if (channel == null) {
                throw new IllegalStateException("Launcher doesn't support remoting but it is required");
             }
-            return channel.call(exec);
+            // Fix loading class by name from TCL in org.jboss.resteasy.client.jaxrs.ProxyBuilder
+            Thread thread = Thread.currentThread();
+            ClassLoader originalClassLoader = thread.getContextClassLoader();
+            try {
+               thread.setContextClassLoader(getClass().getClassLoader());
+               return channel.call(exec);
+            } finally {
+               thread.setContextClassLoader(originalClassLoader);
+            }
          }
 
          return exec.call();
