@@ -59,21 +59,22 @@ public class HorreumUploadExecutionContext extends BaseExecutionContext<String> 
 		}
 		HorreumUploadExecutionContext context = new HorreumUploadExecutionContext(
 				url,
+				config.getCredentials(),
 				params,
 				uploadFile,
 				buildInfo,
 				taskListener.getLogger());
-		context.keycloak.resolveCredentials();
 		return context;
 	}
 
 	private HorreumUploadExecutionContext(
 			String url,
+			String credentials,
 			List<HttpRequestNameValuePair> params,
 			FilePath uploadFile,
 			ObjectNode buildInfo, PrintStream logger
 	) {
-		super(url, logger);
+		super(url, credentials, logger);
 		this.params = new HashMap<>();
 		params.forEach(param -> this.params.put(param.getName(), param));
 		this.uploadFile = uploadFile;

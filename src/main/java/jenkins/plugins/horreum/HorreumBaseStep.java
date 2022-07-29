@@ -21,7 +21,15 @@ public abstract class HorreumBaseStep<C extends HorreumBaseConfig> extends Abstr
       HorreumGlobalConfig globalConfig = HorreumGlobalConfig.get();
       this.config.setKeycloakRealm(globalConfig.getKeycloakRealm());
       this.config.setClientId(globalConfig.getClientId());
-      this.config.setHorreumCredentialsID(globalConfig.getCredentialsId());
+   }
+
+   public String getCredentials() {
+      return config.getCredentials();
+   }
+
+   @DataBoundSetter
+   public void setCredentials(String credentials) {
+      config.setCredentials(credentials);
    }
 
    public boolean getAbortOnFailure() {

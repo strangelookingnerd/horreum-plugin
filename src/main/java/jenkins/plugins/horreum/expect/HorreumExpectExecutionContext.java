@@ -25,7 +25,6 @@ public class HorreumExpectExecutionContext extends BaseExecutionContext<Void> {
 				config,
 				backlink,
 				taskListener.getLogger());
-		context.keycloak.resolveCredentials();
 		return context;
 	}
 
@@ -35,7 +34,7 @@ public class HorreumExpectExecutionContext extends BaseExecutionContext<Void> {
 			String backlink,
 			PrintStream logger
 	) {
-		super(url, logger);
+		super(url, config.getCredentials(), logger);
 		this.config = config;
 		this.backlink = backlink;
 	}

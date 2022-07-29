@@ -13,22 +13,31 @@ import java.util.List;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.remoting.RemoteOutputStream;
+import hudson.security.ACL;
 import io.hyperfoil.tools.HorreumClient;
+import jenkins.model.Jenkins;
 import jenkins.plugins.horreum.auth.KeycloakAuthentication;
 import jenkins.security.MasterToSlaveCallable;
 
 public abstract class BaseExecutionContext<R> extends MasterToSlaveCallable<R, RuntimeException> {
    protected final String url;
+   protected final String credentialsID;
    protected final KeycloakAuthentication keycloak;
    protected final List<Long> retries;
    protected final OutputStream remoteLogger;
    protected transient PrintStream localLogger;
 
-   public BaseExecutionContext(String url, PrintStream logger) {
+   public BaseExecutionContext(String url, String credentials, PrintStream logger) {
       this.url = url;
+      this.credentialsID = credentials;
       HorreumGlobalConfig globalConfig = HorreumGlobalConfig.get();
       keycloak = globalConfig.getAuthentication();
       retries = globalConfig.retries();
@@ -110,14 +119,34 @@ public abstract class BaseExecutionContext<R> extends MasterToSlaveCallable<R, R
    protected abstract R invoke(HorreumClient client);
 
    protected HorreumClient createClient() {
+      //Retrieve Credentials
+      //TODO:: pass in DomainRequirement
+      List<StandardCredentials> credentialsList = CredentialsProvider.lookupCredentials(
+            StandardCredentials.class, // (1)
+            Jenkins.get(), // (1)
+            ACL.SYSTEM
+      ) ;
+
+      StandardCredentials usernameCredentials = CredentialsMatchers.firstOrNull(
+            credentialsList,
+            CredentialsMatchers.withId(this.credentialsID)
+      );
+
+      String username, password;
+      if (usernameCredentials instanceof UsernamePasswordCredentials) {
+         username = ((UsernamePasswordCredentials) usernameCredentials).getUsername();
+         password = ((UsernamePasswordCredentials) usernameCredentials).getPassword().getPlainText();
+      } else {
+         throw new IllegalStateException("Could not retrieve Horreum Credentials. Please check the Horreum plugin configuration in Global Settings");
+      }
+
       HorreumClient.Builder clientBuilder = new HorreumClient.Builder()
             .horreumUrl(url)
             .keycloakUrl(keycloak.getBaseUrl())
             .keycloakRealm(keycloak.getRealm())
             .clientId(keycloak.getClientId())
-            .horreumUser(keycloak.getUsername())
-            .horreumPassword(keycloak.getPassword());
-      HorreumClient client = clientBuilder.build();
-      return client;
+            .horreumUser(username)
+            .horreumPassword(password);
+      return clientBuilder.build();
    }
 }

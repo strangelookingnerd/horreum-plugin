@@ -18,12 +18,14 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.ListBoxModel;
 import jenkins.plugins.horreum.BaseExecutionContext;
+import jenkins.plugins.horreum.HorreumBaseDescriptor;
 import jenkins.plugins.horreum.HorreumBaseStep;
 
 public final class HorreumUploadStep extends HorreumBaseStep<HorreumUploadConfig> {
 
 	@DataBoundConstructor
-	public HorreumUploadStep(String test,
+	public HorreumUploadStep(String credentials,
+									 String test,
 									 String owner,
 							   	 String access,
 									 String start,
@@ -32,7 +34,7 @@ public final class HorreumUploadStep extends HorreumBaseStep<HorreumUploadConfig
 									 String jsonFile,
 									 boolean addBuildInfo) {
 
-		super(new HorreumUploadConfig(test, owner, access, start, stop, schema, jsonFile, addBuildInfo));
+		super(new HorreumUploadConfig(credentials, test, owner, access, start, stop, schema, jsonFile, addBuildInfo));
 	}
 
 	public String getTest() {
@@ -130,9 +132,9 @@ public final class HorreumUploadStep extends HorreumBaseStep<HorreumUploadConfig
 			return "Upload a JSON object to a Horreum instance";
 		}
 
-		public ListBoxModel doFillAuthenticationItems(@AncestorInPath Item project,
-													  @QueryParameter String url) {
-			return HorreumUpload.DescriptorImpl.fillAuthenticationItems(project, url);
+		public ListBoxModel doFillAuthenticationItems(
+				@AncestorInPath Item project, @QueryParameter String url) {
+			return HorreumBaseDescriptor.fillAuthenticationItems(project, url);
 		}
 	}
 

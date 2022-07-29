@@ -10,11 +10,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
 import hudson.EnvVars;
 import hudson.Extension;
@@ -27,13 +29,16 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
+import jenkins.model.Jenkins;
 import jenkins.plugins.horreum.HorreumBaseBuilder;
+import jenkins.plugins.horreum.HorreumBaseDescriptor;
 import jenkins.plugins.horreum.HorreumGlobalConfig;
 
 //TODO: Make safe functionality as upload step
 public class HorreumUpload extends HorreumBaseBuilder<HorreumUploadConfig> {
 	@DataBoundConstructor
-	public HorreumUpload(@Nonnull String test,
+	public HorreumUpload(@Nonnull String credentials,
+								@Nonnull String test,
 								@Nonnull String owner,
 								@Nonnull String access,
 								@Nonnull String start,
@@ -41,7 +46,7 @@ public class HorreumUpload extends HorreumBaseBuilder<HorreumUploadConfig> {
 								@Nonnull String schema,
 								@Nonnull String jsonFile,
 								boolean addBuildInfo) {
-		super(new HorreumUploadConfig(test, owner, access, start, stop, schema, jsonFile, addBuildInfo));
+		super(new HorreumUploadConfig(credentials, test, owner, access, start, stop, schema, jsonFile, addBuildInfo));
 	}
 
 	public String getTest() {
@@ -123,7 +128,7 @@ public class HorreumUpload extends HorreumBaseBuilder<HorreumUploadConfig> {
 	}
 
 	@Extension
-	public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+	public static final class DescriptorImpl extends HorreumBaseDescriptor {
 		public static final String jsonFile = "";
 
 		public DescriptorImpl() {
@@ -140,30 +145,7 @@ public class HorreumUpload extends HorreumBaseBuilder<HorreumUploadConfig> {
 			return "Horreum Upload";
 		}
 
-		public ListBoxModel doFillAuthenticationItems(@AncestorInPath Item project,
-													  @QueryParameter String url) {
-			return fillAuthenticationItems(project, url);
-		}
-
-		public static ListBoxModel fillAuthenticationItems(Item project, String url) {
-			if (project == null || !project.hasPermission(Item.CONFIGURE)) {
-				return new StandardListBoxModel();
-			}
-
-			List<Option> options = new ArrayList<>();
-
-			options.add(new Option(HorreumGlobalConfig.get().getAuthentication().getKeyName()));
-
-			AbstractIdCredentialsListBoxModel<StandardListBoxModel, StandardCredentials> items = new StandardListBoxModel()
-					.includeEmptyValue()
-					.includeAs(ACL.SYSTEM,
-							project, StandardUsernamePasswordCredentials.class,
-							URIRequirementBuilder.fromUri(url).build());
-			items.addMissing(options);
-			return items;
-		}
-
-		public ListBoxModel doFillAccessItems(@AncestorInPath Item item, @QueryParameter String credentialsId) {
+		public ListBoxModel doFillAccessItems(@AncestorInPath Item item, @QueryParameter String credentials) {
 			ListBoxModel items = new ListBoxModel();
 			items.add("PUBLIC");
 			items.add("PROTECTED");

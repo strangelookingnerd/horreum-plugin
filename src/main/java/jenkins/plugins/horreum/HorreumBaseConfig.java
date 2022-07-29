@@ -1,8 +1,21 @@
 package jenkins.plugins.horreum;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
+
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.QueryParameter;
+
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
+import hudson.model.Item;
+import hudson.security.ACL;
+import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
 
 public abstract class HorreumBaseConfig implements Serializable {
    static Boolean DEFAULT_QUIET = false;
@@ -12,7 +25,7 @@ public abstract class HorreumBaseConfig implements Serializable {
    private Boolean abortOnFailure = DEFAULT_ABORT_ON_FAILURE;
    private String keycloakRealm;
    private String clientId;
-   private String credentialsID;
+   private String credentials;
 
    public boolean getAbortOnFailure() {
       return abortOnFailure;
@@ -47,12 +60,12 @@ public abstract class HorreumBaseConfig implements Serializable {
       this.clientId = clientId;
    }
 
-   public String getHorreumCredentialsID() {
-      return credentialsID;
+   public String getCredentials() {
+      return credentials;
    }
 
-   public void setHorreumCredentialsID(String credentialsID) {
-      this.credentialsID = credentialsID;
+   public void setCredentials(String credentials) {
+      this.credentials = Objects.requireNonNull(credentials);
    }
 
    @Nonnull

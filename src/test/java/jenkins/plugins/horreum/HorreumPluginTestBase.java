@@ -45,12 +45,8 @@ public class HorreumPluginTestBase {
 			globalConfig.setClientId("horreum-ui");
 			globalConfig.setKeycloakBaseUrl(HorreumTestExtension.HORREUM_KEYCLOAK_BASE_URL);
 			globalConfig.setBaseUrl(HorreumTestExtension.HORREUM_BASE_URL);
-			globalConfig.setCredentialsId(HORREUM_UPLOAD_CREDENTIALS);
 		} else {
 			System.out.println("Can not find Horreum Global Config");
 		}
-
-		//Lookup Credentials from secrets
-		HorreumGlobalConfig.getKeycloakAuthentication().resolveCredentials();
 	}
 }

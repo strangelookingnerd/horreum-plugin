@@ -24,7 +24,8 @@ public class HorreumUploadConfig extends HorreumBaseConfig {
 	private @Nonnull String jsonFile;
 	private boolean addBuildInfo;
 
-	public HorreumUploadConfig(String test, String owner, String access, String start, String stop, String schema, String jsonFile, boolean addBuildInfo) {
+	public HorreumUploadConfig(String credentials, String test, String owner, String access, String start, String stop, String schema, String jsonFile, boolean addBuildInfo) {
+		this.setCredentials(credentials);
 		if (test == null || test.isEmpty()) {
 			throw new IllegalArgumentException("Test name (or ID) must be set.");
 		}

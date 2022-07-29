@@ -13,23 +13,24 @@ import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.util.ListBoxModel;
 import jenkins.plugins.horreum.BaseExecutionContext;
+import jenkins.plugins.horreum.HorreumBaseDescriptor;
 import jenkins.plugins.horreum.HorreumBaseStep;
 import jenkins.plugins.horreum.HorreumGlobalConfig;
 
 public final class HorreumExpectStep extends HorreumBaseStep<HorreumExpectConfig> {
 
 	@DataBoundConstructor
-	public HorreumExpectStep(String test,
+	public HorreumExpectStep(String credentials,
+									 String test,
 									 long timeout,
 									 String expectedBy,
 									 String backlink) {
-		super(new HorreumExpectConfig(test, timeout, expectedBy, backlink));
+		super(new HorreumExpectConfig(credentials, test, timeout, expectedBy, backlink));
 
 		//Populate step config from Global state
 		HorreumGlobalConfig globalConfig = HorreumGlobalConfig.get();
 		this.config.setKeycloakRealm(globalConfig.getKeycloakRealm());
 		this.config.setClientId(globalConfig.getClientId());
-		this.config.setHorreumCredentialsID(globalConfig.getCredentialsId());
 	}
 
 	public String getTest() {
@@ -92,9 +93,9 @@ public final class HorreumExpectStep extends HorreumBaseStep<HorreumExpectConfig
 			return "Notify Horreum that a run will be uploaded.";
 		}
 
-		public ListBoxModel doFillAuthenticationItems(@AncestorInPath Item project,
-													  @QueryParameter String url) {
-			return HorreumExpect.DescriptorImpl.fillAuthenticationItems(project, url);
+		public ListBoxModel doFillAuthenticationItems(
+				@AncestorInPath Item project, @QueryParameter String url) {
+			return HorreumBaseDescriptor.fillAuthenticationItems(project, url);
 		}
 	}
 

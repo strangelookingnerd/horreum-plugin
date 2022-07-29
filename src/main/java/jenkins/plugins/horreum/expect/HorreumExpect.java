@@ -28,16 +28,18 @@ import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 import jenkins.plugins.horreum.HorreumBaseBuilder;
+import jenkins.plugins.horreum.HorreumBaseDescriptor;
 import jenkins.plugins.horreum.HorreumGlobalConfig;
 
 public class HorreumExpect extends HorreumBaseBuilder<HorreumExpectConfig> {
 
 	@DataBoundConstructor
-	public HorreumExpect(@Nonnull String test,
+	public HorreumExpect(@Nonnull String credentials,
+								@Nonnull String test,
 								@Nonnull long timeout,
 								@Nonnull String expectedBy,
 								@Nonnull String backlink) {
-		super(new HorreumExpectConfig(test, timeout, expectedBy, backlink));
+		super(new HorreumExpectConfig(credentials, test, timeout, expectedBy, backlink));
 	}
 
 	public String getTest() {
@@ -82,7 +84,7 @@ public class HorreumExpect extends HorreumBaseBuilder<HorreumExpectConfig> {
 	}
 
 	@Extension
-	public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+	public static final class DescriptorImpl extends HorreumBaseDescriptor {
 		public static final boolean abortOnFailure = true;
 		public static final Boolean quiet = false;
 
@@ -98,29 +100,6 @@ public class HorreumExpect extends HorreumBaseBuilder<HorreumExpectConfig> {
 		@Override
 		public String getDisplayName() {
 			return "Horreum Expect Run";
-		}
-
-		public ListBoxModel doFillAuthenticationItems(@AncestorInPath Item project,
-													  @QueryParameter String url) {
-			return fillAuthenticationItems(project, url);
-		}
-
-		public static ListBoxModel fillAuthenticationItems(Item project, String url) {
-			if (project == null || !project.hasPermission(Item.CONFIGURE)) {
-				return new StandardListBoxModel();
-			}
-
-			List<Option> options = new ArrayList<>();
-
-			options.add(new Option(HorreumGlobalConfig.get().getAuthentication().getKeyName()));
-
-			AbstractIdCredentialsListBoxModel<StandardListBoxModel, StandardCredentials> items = new StandardListBoxModel()
-					.includeEmptyValue()
-					.includeAs(ACL.SYSTEM,
-							project, StandardUsernamePasswordCredentials.class,
-							URIRequirementBuilder.fromUri(url).build());
-			items.addMissing(options);
-			return items;
 		}
 	}
 }

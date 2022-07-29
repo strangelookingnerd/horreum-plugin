@@ -20,6 +20,7 @@ public class HorreumUploadTest extends HorreumPluginTestBase {
 
 		// Prepare HttpRequest#
 		HorreumUpload horreumUpload = new HorreumUpload(
+				HORREUM_UPLOAD_CREDENTIALS,
 				dummyTest.name,
 				dummyTest.owner,
 				"PUBLIC",

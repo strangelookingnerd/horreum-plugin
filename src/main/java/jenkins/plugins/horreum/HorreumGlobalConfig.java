@@ -9,21 +9,12 @@ import java.util.stream.LongStream;
 
 import net.sf.json.JSONObject;
 
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
 import hudson.Extension;
 import hudson.XmlFile;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.Item;
-import hudson.security.ACL;
-import hudson.util.ListBoxModel;
 import hudson.util.XStream2;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.Jenkins;
@@ -65,25 +56,6 @@ public class HorreumGlobalConfig extends GlobalConfiguration {
         save();
         return true;
     }
-
-	public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String credentialsId) {
-		StandardListBoxModel result = new StandardListBoxModel();
-		if (item == null) {
-			if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
-				return result.includeCurrentValue(credentialsId);
-			}
-		} else {
-			if (!item.hasPermission(Item.EXTENDED_READ)
-					&& !item.hasPermission(CredentialsProvider.USE_ITEM)) {
-				return result.includeCurrentValue(credentialsId);
-			}
-		}
-		return result
-				.includeEmptyValue()
-				.includeAs(ACL.SYSTEM, Jenkins.get(),
-						UsernamePasswordCredentialsImpl.class)
-				.includeCurrentValue(credentialsId);
-	}
 
    public static HorreumGlobalConfig get() {
 		return GlobalConfiguration.all().get(HorreumGlobalConfig.class);
@@ -128,13 +100,6 @@ public class HorreumGlobalConfig extends GlobalConfiguration {
 	}
 	public void setClientId( String clientId){
     	keycloak.setClientId(clientId);
-	}
-
-	public String getCredentialsId(){
-    	return keycloak.getCredentialsID();
-	}
-	public void setCredentialsId(String id){
-		keycloak.setCredentialsID(id);
 	}
 
 	public static KeycloakAuthentication getKeycloakAuthentication(){

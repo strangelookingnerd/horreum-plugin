@@ -22,6 +22,7 @@ public class HorreumExpectStepTest extends HorreumPluginTestBase {
       proj.setDefinition(new CpsFlowDefinition(
             "node {\n" +
             "horreumExpect(\n" +
+            "credentials: '" + HorreumPluginTestBase.HORREUM_UPLOAD_CREDENTIALS + "',\n" +
             "test: '" + dummyTest.name + "',\n" +
             "timeout: 60,\n" +
             "expectedBy: 'Jenkins CI',\n" +

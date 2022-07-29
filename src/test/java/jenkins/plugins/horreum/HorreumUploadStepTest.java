@@ -21,6 +21,7 @@ public class HorreumUploadStepTest extends HorreumPluginTestBase {
       proj.setDefinition(new CpsFlowDefinition(
             "node {\n" +
             "def id = horreumUpload(\n" +
+            "credentials: '" + HorreumPluginTestBase.HORREUM_UPLOAD_CREDENTIALS + "',\n" +
             "test: '" + dummyTest.name + "',\n" +
             "owner: '" + dummyTest.owner + "',\n" +
             "access: 'PUBLIC',\n" +
