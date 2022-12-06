@@ -1,12 +1,20 @@
 package jenkins.plugins.horreum.upload;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,48 +91,49 @@ public class HorreumUploadExecutionContext extends BaseExecutionContext<String> 
 
 	@Override
 	protected String invoke(HorreumClient client) {
-		JsonNode json = null;
+		JsonNode data;
 		try {
-			json = new ObjectMapper().readTree(new File(uploadFile.getRemote()));
+			data = new ObjectMapper().readTree(new File(uploadFile.getRemote()));
 		} catch (IOException e) {
 			throw new RuntimeException("File for upload cannot be read: " + uploadFile.getRemote(), e);
 		}
 		String schema = params.get("schema").getValue();
-		if (buildInfo != null) {
-			if (json.isArray()) {
-				((ArrayNode) json).add(buildInfo);
-			} else if (json.isObject()) {
-				ObjectNode objectNode = (ObjectNode) json;
-				if (schema != null && !schema.isEmpty()) {
-					objectNode.put("$schema", schema);
-				}
-				if (objectNode.hasNonNull("$schema")) {
-					ArrayNode arrayNode = JsonNodeFactory.instance.arrayNode();
-					arrayNode.add(json);
-					arrayNode.add(buildInfo);
-					json = arrayNode;
-				} else {
-					// the object is probably an aggregate of schemas
-					objectNode.set("horreum-jenkins-plugin", buildInfo);
-				}
-			} else {
-				ArrayNode arrayNode = JsonNodeFactory.instance.arrayNode();
-				arrayNode.add(json);
-				arrayNode.add(buildInfo);
-				json = arrayNode;
-			}
+		if (schema != null && schema.isEmpty()) {
+			schema = null;
 		}
-		String id = client.runService.addRunFromData(
-				params.get("start").getValue(),
-				params.get("stop").getValue(),
-				params.get("test").getValue(),
-				params.get("owner").getValue(),
-				Access.valueOf(params.get("access").getValue()),
-				null,
-				"".equals(schema) ? null : schema,
-				null,
-				json
-		);
+		String start = params.get("start").getValue();
+		String stop = params.get("stop").getValue();
+		String test = params.get("test").getValue();
+		String owner = params.get("owner").getValue();
+		Access access = Access.valueOf(params.get("access").getValue());
+		Response response;
+		if (buildInfo == null) {
+			response = client.runService.addRunFromData(
+					start, stop, test, owner, access, null, schema, null,	data);
+		} else {
+			response = client.runService.addRunFromData(
+					start, stop, test, owner, access, null, schema, null,	data, buildInfo);
+		}
+		Object entity = response.getEntity();
+		String id;
+		if (entity instanceof String) {
+			id = (String) entity;
+		} else if (entity instanceof InputStream) {
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader((InputStream) entity, StandardCharsets.UTF_8))) {
+				id = reader.readLine();
+				if (id == null) {
+					throw new WebApplicationException("Missing run ID!");
+				}
+				String secondLine = reader.readLine();
+				if (secondLine != null) {
+					throw new WebApplicationException("Run ID shouldn't contain newlines; first line was " + id + ", second line: " + secondLine);
+				}
+			} catch (IOException e) {
+				throw new WebApplicationException("Cannot read run ID", e);
+			}
+		} else {
+			throw new WebApplicationException("Cannot convert response entity to string! Entity: " + entity);
+		}
 		logger().printf("Uploaded run ID: %s%n", id);
 		return id;
 	}
