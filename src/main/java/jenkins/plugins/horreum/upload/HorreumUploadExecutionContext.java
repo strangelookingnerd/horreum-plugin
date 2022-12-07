@@ -11,14 +11,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -38,17 +36,19 @@ public class HorreumUploadExecutionContext extends BaseExecutionContext<String> 
 	private static final long serialVersionUID = -2066857816168989599L;
 	private static final String HORREUM_JENKINS_SCHEMA = "urn:horreum:jenkins-plugin:0.1";
 	private final Map<String, HttpRequestNameValuePair> params;
-	private final FilePath uploadFile;
+	private final String workspacePath;
+	private final FilePath[] uploadFiles;
 	private final ObjectNode buildInfo;
 
 	static HorreumUploadExecutionContext from(HorreumUploadConfig config,
 															EnvVars envVars,
 															Run<?, ?> run,
 															TaskListener listener,
-															Supplier<FilePath> filePathSupplier) {
+															Supplier<String> workspacePathSupplier,
+															Supplier<FilePath[]> uploadFilesSupplier) {
 		String url = envVars != null ? envVars.expand(HorreumGlobalConfig.get().getBaseUrl()) : HorreumGlobalConfig.get().getBaseUrl(); //http.resolveUrl(envVars, build, taskListener);
 		List<HttpRequestNameValuePair> params = config.resolveParams(); //Need to define params in freestyle project
-		FilePath uploadFile = filePathSupplier.get();
+		FilePath[] uploadFiles = uploadFilesSupplier.get();
 		TaskListener taskListener = config.getQuiet() ? TaskListener.NULL : listener;
 
 		ObjectNode buildInfo = null;
@@ -65,37 +65,52 @@ public class HorreumUploadExecutionContext extends BaseExecutionContext<String> 
 			buildInfo.put("startTime", run.getStartTimeInMillis());
 			buildInfo.put("uploadTime", System.currentTimeMillis());
 		}
-		HorreumUploadExecutionContext context = new HorreumUploadExecutionContext(
+		return new HorreumUploadExecutionContext(
 				url,
 				config.getCredentials(),
 				params,
-				uploadFile,
+				workspacePathSupplier.get(),
+				uploadFiles,
 				buildInfo,
 				taskListener.getLogger());
-		return context;
 	}
 
 	private HorreumUploadExecutionContext(
 			String url,
 			String credentials,
 			List<HttpRequestNameValuePair> params,
-			FilePath uploadFile,
+			String workspacePath,
+			FilePath[] uploadFiles,
 			ObjectNode buildInfo, PrintStream logger
 	) {
 		super(url, credentials, logger);
 		this.params = new HashMap<>();
 		params.forEach(param -> this.params.put(param.getName(), param));
-		this.uploadFile = uploadFile;
+		this.workspacePath = workspacePath;
+		this.uploadFiles = uploadFiles;
 		this.buildInfo = buildInfo;
 	}
 
 	@Override
 	protected String invoke(HorreumClient client) {
 		JsonNode data;
-		try {
-			data = new ObjectMapper().readTree(new File(uploadFile.getRemote()));
-		} catch (IOException e) {
-			throw new RuntimeException("File for upload cannot be read: " + uploadFile.getRemote(), e);
+		if (uploadFiles == null || uploadFiles.length == 0) {
+			throw new IllegalStateException("There are no files to upload!");
+		} else if (uploadFiles.length == 1) {
+			data = loadFile(uploadFiles[0]);
+		} else {
+			ObjectNode root = JsonNodeFactory.instance.objectNode();
+			for (FilePath uploadFile : uploadFiles) {
+				String path = uploadFile.getRemote();
+				if (workspacePath != null && path.startsWith(workspacePath)) {
+					path = path.substring(workspacePath.length());
+					if (path.startsWith("/")) {
+						path = path.substring(1);
+					}
+				}
+				root.set(path, loadFile(uploadFile));
+			}
+			data = root;
 		}
 		String schema = params.get("schema").getValue();
 		if (schema != null && schema.isEmpty()) {
@@ -136,5 +151,13 @@ public class HorreumUploadExecutionContext extends BaseExecutionContext<String> 
 		}
 		logger().printf("Uploaded run ID: %s%n", id);
 		return id;
+	}
+
+	private JsonNode loadFile(FilePath uploadFile) {
+		try {
+			return new ObjectMapper().readTree(new File(uploadFile.getRemote()));
+		} catch (IOException e) {
+			throw new RuntimeException("File for upload cannot be read: " + uploadFile.getRemote(), e);
+		}
 	}
 }

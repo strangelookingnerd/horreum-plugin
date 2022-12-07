@@ -1,8 +1,5 @@
 package jenkins.plugins.horreum.upload;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.annotation.Nonnull;
 
 import org.kohsuke.stapler.AncestorInPath;
@@ -10,29 +7,15 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.AbstractIdCredentialsListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Item;
-import hudson.security.ACL;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
-import hudson.util.ListBoxModel.Option;
-import jenkins.model.Jenkins;
 import jenkins.plugins.horreum.HorreumBaseBuilder;
 import jenkins.plugins.horreum.HorreumBaseDescriptor;
-import jenkins.plugins.horreum.HorreumGlobalConfig;
 
 //TODO: Make safe functionality as upload step
 public class HorreumUpload extends HorreumBaseBuilder<HorreumUploadConfig> {
@@ -44,9 +27,10 @@ public class HorreumUpload extends HorreumBaseBuilder<HorreumUploadConfig> {
 								@Nonnull String start,
 								@Nonnull String stop,
 								@Nonnull String schema,
-								@Nonnull String jsonFile,
+								String jsonFile,
+								String files,
 								boolean addBuildInfo) {
-		super(new HorreumUploadConfig(credentials, test, owner, access, start, stop, schema, jsonFile, addBuildInfo));
+		super(new HorreumUploadConfig(credentials, test, owner, access, start, stop, schema, jsonFile, files, addBuildInfo));
 	}
 
 	public String getTest() {
@@ -123,8 +107,9 @@ public class HorreumUpload extends HorreumBaseBuilder<HorreumUploadConfig> {
 
 	@Override
 	protected HorreumUploadExecutionContext createExecutionContext(AbstractBuild<?, ?> build, BuildListener listener, EnvVars envVars) {
-		return HorreumUploadExecutionContext.from(config, envVars, build,
-				listener, () -> this.config.resolveUploadFile(envVars, build));
+		return HorreumUploadExecutionContext.from(config, envVars, build,	listener,
+				() -> build.getWorkspace() == null ? null : build.getWorkspace().getRemote(),
+				() -> this.config.resolveUploadFiles(envVars, build));
 	}
 
 	@Extension

@@ -32,9 +32,10 @@ public final class HorreumUploadStep extends HorreumBaseStep<HorreumUploadConfig
 									 String stop,
 									 String schema,
 									 String jsonFile,
+									 String files,
 									 boolean addBuildInfo) {
 
-		super(new HorreumUploadConfig(credentials, test, owner, access, start, stop, schema, jsonFile, addBuildInfo));
+		super(new HorreumUploadConfig(credentials, test, owner, access, start, stop, schema, jsonFile, files, addBuildInfo));
 	}
 
 	public String getTest() {
@@ -100,6 +101,15 @@ public final class HorreumUploadStep extends HorreumBaseStep<HorreumUploadConfig
 		this.config.setJsonFile(jsonFile);
 	}
 
+	public String getFiles() {
+		return config.getJsonFile();
+	}
+
+	@DataBoundSetter
+	public void setFiles(String files) {
+		this.config.setFiles(files);
+	}
+
 	public boolean getAddBuildInfo() {
 		return config.getAddBuildInfo();
 	}
@@ -145,28 +155,39 @@ public final class HorreumUploadStep extends HorreumBaseStep<HorreumUploadConfig
 		@Override
 		protected BaseExecutionContext<String> createExecutionContext() throws Exception {
 			StepContext context = getContext();
-			return HorreumUploadExecutionContext.from(step.config, null, context.get(Run.class), context.get(TaskListener.class), this::resolveUploadFile);
+			return HorreumUploadExecutionContext.from(step.config, null, context.get(Run.class), context.get(TaskListener.class), this::resolveWorkspacePath, this::resolveUploadFiles);
+		}
+
+		private String resolveWorkspacePath() {
+			try {
+				FilePath workpace = getContext().get(FilePath.class);
+				return workpace == null ? null : workpace.getRemote();
+			} catch (IOException | InterruptedException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		private static final long serialVersionUID = 1L;
 
-		private FilePath resolveUploadFile() {
-			String uploadFile = step.getJsonFile();
-			if (uploadFile.trim().isEmpty()) {
-				return null;
-			}
-
+		private FilePath[] resolveUploadFiles() {
 			try {
 				FilePath workspace = getContext().get(FilePath.class);
 				if (workspace == null) {
-					throw new IllegalStateException("Could not find workspace to check existence of upload file: " + uploadFile +
-							". You should use it inside a 'node' block");
+					throw new IllegalStateException("Could not find workspace.");
 				}
-				FilePath uploadFilePath = workspace.child(uploadFile);
-				if (!uploadFilePath.exists()) {
-					throw new IllegalStateException("Could not find upload file: " + uploadFile);
+				String jsonFile = step.getJsonFile();
+				String files = step.getFiles();
+				if (jsonFile != null && !jsonFile.trim().isEmpty()) {
+					FilePath uploadFilePath = workspace.child(jsonFile);
+					if (!uploadFilePath.exists()) {
+						throw new IllegalStateException("Could not find upload file: " + jsonFile);
+					}
+					return new FilePath[] { uploadFilePath };
+				} else if (files != null && !files.trim().isEmpty()) {
+					return workspace.list(files);
+				} else {
+					throw new IllegalStateException();
 				}
-				return uploadFilePath;
 			} catch (IOException | InterruptedException e) {
 				throw new IllegalStateException(e);
 			}

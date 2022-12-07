@@ -28,7 +28,11 @@
         <f:textbox />
     </f:entry>
 
-    <f:entry field="jsonFile" title="JSON file path">
+    <f:entry field="jsonFile" title="JSON file path" description="Path to a single file in workspace. Cannot be combined with the selector below.">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry field="files" title="Multiple files selector" description="Selector for multiple files supporting Ant FileSet syntax (e.g. '**/*.json'). Cannot be combined with single file path above.">
         <f:textbox />
     </f:entry>
 

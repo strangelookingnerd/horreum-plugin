@@ -21,10 +21,11 @@ public class HorreumUploadConfig extends HorreumBaseConfig {
 	private @Nonnull String start;
 	private @Nonnull String stop;
 	private @Nonnull String schema;
-	private @Nonnull String jsonFile;
+	private String jsonFile;
+	private String files;
 	private boolean addBuildInfo;
 
-	public HorreumUploadConfig(String credentials, String test, String owner, String access, String start, String stop, String schema, String jsonFile, boolean addBuildInfo) {
+	public HorreumUploadConfig(String credentials, String test, String owner, String access, String start, String stop, String schema, String jsonFile, String files, boolean addBuildInfo) {
 		this.setCredentials(credentials);
 		if (test == null || test.isEmpty()) {
 			throw new IllegalArgumentException("Test name (or ID) must be set.");
@@ -38,8 +39,10 @@ public class HorreumUploadConfig extends HorreumBaseConfig {
 			throw new IllegalArgumentException("Stop timestamp must be set.");
 		}
 		schema = orEmpty(schema);
-		if (jsonFile == null || jsonFile.isEmpty()) {
-			throw new IllegalArgumentException("JSON file must be set.");
+		if ((jsonFile == null || jsonFile.isEmpty()) && (files == null || files.isEmpty())) {
+			throw new IllegalArgumentException("Either 'jsonFile' or 'files' must be set.");
+		} else if (jsonFile != null && !jsonFile.isEmpty() && files != null && !files.isEmpty()) {
+			throw new IllegalArgumentException("You can set 'jsonFile' or 'files' but not both.");
 		}
 		this.test = Objects.requireNonNull(test);
 		this.owner = Objects.requireNonNull(owner);
@@ -47,7 +50,8 @@ public class HorreumUploadConfig extends HorreumBaseConfig {
 		this.start = Objects.requireNonNull(start);
 		this.stop = Objects.requireNonNull(stop);
 		this.schema = Objects.requireNonNull(schema);
-		this.jsonFile = Objects.requireNonNull(jsonFile);
+		this.jsonFile = jsonFile;
+		this.files = files;
 		this.addBuildInfo = addBuildInfo;
 	}
 
@@ -105,13 +109,20 @@ public class HorreumUploadConfig extends HorreumBaseConfig {
 		this.schema = schema;
 	}
 
-	@Nonnull
 	public String getJsonFile() {
 		return jsonFile;
 	}
 
 	public void setJsonFile(@Nonnull String jsonFile) {
 		this.jsonFile = jsonFile;
+	}
+
+	public String getFiles() {
+		return files;
+	}
+
+	public void setFiles(@Nonnull String files) {
+		this.files = files;
 	}
 
 	public boolean getAddBuildInfo() {
@@ -123,22 +134,24 @@ public class HorreumUploadConfig extends HorreumBaseConfig {
 		return this;
 	}
 
-	FilePath resolveUploadFile(EnvVars envVars, AbstractBuild<?,?> build) {
-		if (jsonFile.trim().isEmpty()) {
-			return null;
-		}
-		String filePath = envVars.expand(jsonFile);
+	FilePath[] resolveUploadFiles(EnvVars envVars, AbstractBuild<?,?> build) {
 		try {
 			FilePath workspace = build.getWorkspace();
 			if (workspace == null) {
 				throw new IllegalStateException("Could not find workspace to check existence of upload file: " + jsonFile +
 						". You should use it inside a 'node' block");
 			}
-			FilePath uploadFilePath = workspace.child(filePath);
-			if (!uploadFilePath.exists()) {
-				throw new IllegalStateException("Could not find upload file: " + jsonFile);
+			if (jsonFile != null && !jsonFile.isEmpty()) {
+				FilePath uploadFilePath = workspace.child(envVars.expand(jsonFile));
+				if (!uploadFilePath.exists()) {
+					throw new IllegalStateException("Could not find upload file: " + jsonFile);
+				}
+				return new FilePath[] { uploadFilePath };
+			} else if (files != null && !files.isEmpty()) {
+				return workspace.list(envVars.expand(files));
+			} else {
+				throw new IllegalStateException();
 			}
-			return uploadFilePath;
 		} catch (IOException | InterruptedException e) {
 			throw new IllegalStateException(e);
 		}
